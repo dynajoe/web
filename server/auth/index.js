@@ -1,9 +1,12 @@
 const passport = require('koa-passport');
+const { readFileSync } = require('fs');
 
 const oidc = require('./oidc');
 const { STRATEGY_NAMES } = require('./constants');
 const { getAuthConfig } = require('../config');
 const { generators } = require('openid-client');
+
+const oidcSecretPath = process.env.TEMPORAL_OIDC_CLIENT_SECRET_PATH;
 
 const initialize = async (ctx, next) => {
   const auth = await getAuthConfig();
@@ -26,6 +29,12 @@ const initialize = async (ctx, next) => {
       callback_base_uri: callbackUriBase,
       pass_id_token: passIdToken,
     } = auth.providers[0]; // we currently support single auth config
+
+    // Load oidc client secret from file if specified
+    if (oidcSecretPath) {
+      clientSecret = readFileSync(oidcSecretPath, { encoding: 'utf8' }).trim();
+    }
+
     const strategy = await oidc.getStrategy({
       issuer,
       clientId,
